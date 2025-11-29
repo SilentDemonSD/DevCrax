@@ -34,13 +34,11 @@ export async function load({ params, fetch }) {
 	}
 
 	try {
-		// Fetch the script from the Worker
-		// In development, this will use the local worker endpoint
-		// In production, this will use the actual Worker URL
-		const workerBaseUrl = import.meta.env.PUBLIC_WORKER_URL || 'http://localhost:8787';
-		const workerUrl = `${workerBaseUrl}/${tool}`;
+		// Fetch the script from the API endpoint
+		// Use relative URL to fetch from the same origin (works in both dev and production)
+		const scriptUrl = `/${tool}`;
 		
-		const response = await fetch(workerUrl);
+		const response = await fetch(scriptUrl);
 
 		// Handle non-200 responses
 		if (!response.ok) {
