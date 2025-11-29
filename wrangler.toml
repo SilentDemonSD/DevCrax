@@ -4,6 +4,18 @@
 name = "devcrax"
 pages_build_output_dir = ".svelte-kit/output/client"
 compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = ""
+
+[build.upload]
+format = "modules"
+
+[[build.upload.rules]]
+type = "Text"
+globs = ["**/*.ttf"]
+fallthrough = true
 
 # Optional: Add GitHub token for higher API rate limits
 # Unauthenticated: 60 requests/hour

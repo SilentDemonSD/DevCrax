@@ -13,12 +13,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:property": "vitest --run --grep \"Property\"",
-    "dev:worker": "wrangler dev workers/script-worker.js",
-    "deploy:worker": "wrangler deploy",
-    "deploy:worker:production": "wrangler deploy --env production",
-    "deploy:pages": "npm run build:clean && wrangler pages deploy .svelte-kit/cloudflare",
-    "deploy": "npm run deploy:worker && npm run deploy:pages",
-    "deploy:production": "npm run test && npm run deploy:worker:production && npm run deploy:pages"
+    "deploy:help": "echo 'For deployment instructions, see CLI_DEPLOYMENT_FIX.md or PRODUCTION_DEPLOYMENT.md'"
   },
   "keywords": ["devops", "installer", "cloudflare"],
   "author": "",
