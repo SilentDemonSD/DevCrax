@@ -26,20 +26,33 @@ export async function generateScript(toolName) {
 		throw new Error(`Tool '${toolName}' is not supported`);
 	}
 
-	// Fetch latest release from GitHub
+	// Fetch latest release from GitHub (for version info)
 	/** @type {{tag_name: string, name: string, assets: Array<{name: string, browser_download_url: string}>}} */
 	const release = await getLatestRelease(toolConfig.repo);
-	
-	// Find matching asset
+	const version = release.tag_name;
+
+	let fileName, downloadUrl;
+
+	// Check if tool uses custom download URL (not GitHub releases)
+	if (toolConfig.customDownload) {
+		// For custom downloads, we need to generate a dynamic script that determines OS/arch
+		// and constructs the URL at runtime
+		const script = buildDynamicScript({
+			toolName,
+			version,
+			customDownloadFn: toolConfig.customDownload
+		});
+		return script;
+	}
+
+	// Standard GitHub release asset approach
 	const asset = findAsset(release.assets, toolConfig.filter);
 	if (!asset) {
 		throw new Error(`No compatible binary found for ${toolName}. No asset matching filter '${toolConfig.filter}'`);
 	}
 
-	// Determine file extension for extraction logic
-	const fileName = asset.name;
-	const downloadUrl = asset.browser_download_url;
-	const version = release.tag_name;
+	fileName = asset.name;
+	downloadUrl = asset.browser_download_url;
 
 	// Generate the script
 	const script = buildScript({
@@ -50,6 +63,91 @@ export async function generateScript(toolName) {
 	});
 
 	return script;
+}
+
+/**
+ * Builds a dynamic bash script for tools with custom download URLs
+ * 
+ * @param {Object} context - Script generation context
+ * @param {string} context.toolName - Name of the tool
+ * @param {string} context.version - Version tag of the release
+ * @param {Function} context.customDownloadFn - Function to generate download URL
+ * @returns {string} The complete bash script
+ */
+function buildDynamicScript({ toolName, version, customDownloadFn }) {
+	// Generate example URLs for different platforms to show the pattern
+	const exampleLinuxAmd64 = customDownloadFn(version, 'linux', 'amd64');
+	const exampleDarwinArm64 = customDownloadFn(version, 'darwin', 'arm64');
+	
+	// Determine file extension from example URL
+	const fileName = exampleLinuxAmd64.split('/').pop() || toolName;
+	const extractionLogic = getExtractionLogic(fileName, toolName);
+	const versionCheck = getVersionCheckCommand(toolName);
+
+	// Convert the JS function to bash logic
+	const urlTemplate = customDownloadFn(version, '${OS}', '${ARCH}');
+
+	return `#!/usr/bin/env bash
+set -e
+
+echo "Installing ${toolName} ${version}..."
+
+# Detect OS
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+if [ -z "$OS" ]; then
+  echo "Error: Failed to detect operating system"
+  exit 1
+fi
+
+# Detect Architecture
+ARCH=$(uname -m)
+if [ -z "$ARCH" ]; then
+  echo "Error: Failed to detect architecture"
+  exit 1
+fi
+
+# Normalize architecture names
+case "$ARCH" in
+  x86_64)
+    ARCH="amd64"
+    ;;
+  aarch64)
+    ARCH="arm64"
+    ;;
+esac
+
+echo "Detected OS: $OS"
+echo "Detected Architecture: $ARCH"
+
+# Construct download URL
+DOWNLOAD_URL="${urlTemplate}"
+FILE_NAME="${fileName}"
+
+echo "Download URL: $DOWNLOAD_URL"
+
+# Download
+echo "Downloading ${toolName}..."
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
+curl -fsSL "$DOWNLOAD_URL" -o "$FILE_NAME"
+
+${extractionLogic}
+
+# Install to /usr/local/bin
+echo "Installing ${toolName} to /usr/local/bin..."
+sudo mv ${toolName} /usr/local/bin/${toolName}
+sudo chmod +x /usr/local/bin/${toolName}
+
+# Cleanup
+cd -
+rm -rf "$TEMP_DIR"
+
+# Verify installation
+echo "Verifying installation..."
+${versionCheck}
+
+echo "${toolName} installed successfully!"
+`;
 }
 
 /**
