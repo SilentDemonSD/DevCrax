@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:property": "vitest --run --grep \"Property\"",
-    "deploy:help": "echo 'For deployment instructions, see CLI_DEPLOYMENT_FIX.md or PRODUCTION_DEPLOYMENT.md'"
+    "verify": "node verify-build.js",
+    "deploy:help": "echo 'For deployment instructions, see DEPLOYMENT_READY.md'"
   },
   "keywords": ["devops", "installer", "cloudflare"],
   "author": "",

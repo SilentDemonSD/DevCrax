@@ -1,9 +1,13 @@
+
 /**
  * Monaco Editor wrapper for shell/bash script editing
  * Provides initialization and configuration for the Monaco Editor component
+ * 
+ * This module uses dynamic imports to ensure Monaco Editor is only loaded
+ * on the client side, avoiding SSR issues with Cloudflare Pages.
+ * @type {{ editor: any; default?: any; CancellationTokenSource?: any; Emitter?: any; KeyCode?: any; KeyMod?: any; MarkerSeverity?: any; MarkerTag?: any; Position?: any; Range?: any; Selection?: any; SelectionDirection?: any; Token?: any; languages?: any; Uri?: any; createWebWorker?: any; css?: any; html?: any; json?: any; lsp?: any; typescript?: any; }}
  */
-
-import * as monaco from 'monaco-editor';
+let monaco;
 
 /**
  * Initialize Monaco Editor with shell/bash configuration
@@ -11,11 +15,16 @@ import * as monaco from 'monaco-editor';
  * @param {HTMLElement} container - The DOM element to mount the editor in
  * @param {string} initialValue - The initial script content to display
  * @param {Object} options - Additional editor options to override defaults
- * @returns {monaco.editor.IStandaloneCodeEditor} The initialized editor instance
+ * @returns {Promise<any>} The initialized editor instance
  */
-export function initializeMonacoEditor(container, initialValue = '', options = {}) {
+export async function initializeMonacoEditor(container, initialValue = '', options = {}) {
   if (!container) {
     throw new Error('Container element is required for Monaco Editor initialization');
+  }
+
+  // Dynamically import Monaco Editor only on the client side
+  if (!monaco) {
+    monaco = await import('monaco-editor');
   }
 
   // Default editor configuration optimized for shell script editing
@@ -93,7 +102,12 @@ export function disposeEditor(editor) {
  * Configure Monaco Editor theme and language settings
  * This can be called before creating editor instances to set global defaults
  */
-export function configureMonaco() {
+export async function configureMonaco() {
+  // Dynamically import Monaco Editor if not already loaded
+  if (!monaco) {
+    monaco = await import('monaco-editor');
+  }
+  
   // Set default theme
   monaco.editor.setTheme('vs-dark');
   
@@ -101,5 +115,13 @@ export function configureMonaco() {
   // For example, custom language definitions or theme customizations
 }
 
-// Export monaco for direct access if needed
-export { monaco };
+/**
+ * Get Monaco instance (loads it if not already loaded)
+ * @returns {Promise<any>} Monaco editor module
+ */
+export async function getMonaco() {
+  if (!monaco) {
+    monaco = await import('monaco-editor');
+  }
+  return monaco;
+}
